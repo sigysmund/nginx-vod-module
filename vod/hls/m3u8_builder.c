@@ -561,7 +561,7 @@ m3u8_builder_build_index_playlist(
 	}
 
 	// Note: scaling first to 'scale' so that target duration will always be round(max(manifest durations))
-	scale = conf->m3u8_version >= 2 ? 1000 : 1;
+	scale = conf->m3u8_version >= 3 ? 1000 : 1;
 	max_segment_duration = rescale_time(max_segment_duration, segment_durations.timescale, scale);
 	max_segment_duration = rescale_time(max_segment_duration, scale, 1);
 
@@ -1532,10 +1532,7 @@ m3u8_builder_init_config(
 	}
 	else
 	{
-        /**
-         * TV Model has lower expectations whereas version 2 is considered to be compliant
-         */
-		conf->m3u8_version = 2;
+		conf->m3u8_version = 3;
 	}
 
 	conf->iframes_m3u8_header_len = vod_snprintf(

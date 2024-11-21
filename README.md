@@ -532,6 +532,8 @@ Optional fields:
 * `label` - a friendly string that identifies the sequence. If a language is specified,
 	a default label will be automatically derived by it - e.g. if language is `ita`, 
 	by default `italiano` will be used as the label.
+* `default` - a boolean that sets the value of the DEFAULT attribute of EXT-X-MEDIA tags using this sequence.
+	If not specified, the first EXT-X-MEDIA tag in each group returns DEFAULT=YES, while the others return DEFAULT=NO.
 * `bitrate` - an object that can be used to set the bitrate for the different media types,
 	in bits per second. For example, `{"v": 900000, "a": 64000}`. If the bitrate is not supplied,
 	nginx-vod-module will estimate it based on the last clip in the sequence.
@@ -571,6 +573,7 @@ Mandatory fields:
 	an empty captions file (useful in case only some videos in a playlist have captions)
 
 Optional fields:
+* `id` - a string that identifies the source clip
 * `sourceType` - sets the interface that should be used to read the MP4 file, allowed values are:
 	`file` and `http`. By default, the module uses `http` if `vod_remote_upstream_location` is set,
 	and `file` otherwise.
@@ -1689,8 +1692,19 @@ padding is added as needed.
 * **default**: `off`
 * **context**: `http`, `server`, `location`
 
-When enabled, an ID3 TEXT frame will be outputted in each TS segment, containing a JSON with the absolute segment timestamp.
-The timestamp is measured in milliseconds since the epoch (unixtime x 1000), the JSON structure is: `{"timestamp":1459779115000}`
+When enabled, an ID3 TEXT frame is outputted in each TS segment.
+The content of the ID3 TEXT frame can be set using the directive `vod_hls_mpegts_id3_data`.
+
+#### vod_hls_mpegts_id3_data
+* **syntax**: `vod_hls_mpegts_id3_data string`
+* **default**: `{"timestamp":$vod_segment_time,"sequenceId":"$vod_sequence_id"}`
+* **context**: `http`, `server`, `location`
+
+Sets the data of the ID3 TEXT frame outputted in each TS segment, when `vod_hls_mpegts_output_id3_timestamps` is set to `on`.
+When the directive is not set, the ID3 frames contain by default a JSON object of the format `{"timestamp":1459779115000,"sequenceId":"{id}"}`:
+- `timestamp` - an absolute time measured in milliseconds since the epoch (unixtime x 1000).
+- `sequenceId` - the id field of the sequence object, as specified in the mapping JSON. The field is omitted when the sequence id is empty / not specified in the mapping JSON.
+The parameter value can contain variables.
 
 #### vod_hls_mpegts_align_pts
 * **syntax**: `vod_hls_mpegts_align_pts on/off`
@@ -1699,6 +1713,13 @@ The timestamp is measured in milliseconds since the epoch (unixtime x 1000), the
 
 When enabled, the module will shift back the dts timestamps by the pts delay of the initial frame.
 This can help keep the pts timestamps aligned across multiple renditions.
+
+#### vod_hls_encryption_output_iv
+* **syntax**: `vod_hls_encryption_output_iv on/off`
+* **default**: `off`
+* **context**: `http`, `server`, `location`
+
+When enabled, the module outputs the `IV` attribute in returned `#EXT-X-KEY` tags.
 
 ### Configuration directives - MSS
 
@@ -1821,6 +1842,7 @@ The module adds the following nginx variables:
 	`EXPIRED` - the current server time is larger than `expirationTime`
 	`ALLOC_FAILED` - the module failed to allocate memory
 	`UNEXPECTED` - a scenario that is not supposed to happen, most likely a bug in the module
+* `$vod_segment_time` - for segment requests, contains the absolute timestamp of the first frame in the segment, measured in milliseconds since the epoch (unixtime x 1000).
 * `$vod_segment_duration` - for segment requests, contains the duration of the segment in milliseconds
 * `$vod_frames_bytes_read` - for segment requests, total number of bytes read while processing media frames
 
